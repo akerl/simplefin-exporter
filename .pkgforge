@@ -1,4 +1,4 @@
-name 'stock-exporter'
+name 'simplefin-exporter'
 org 'akerl'
 
 source(
