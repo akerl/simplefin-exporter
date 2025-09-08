@@ -11,9 +11,10 @@ var logger = log.NewLogger("simplefin-exporter.config")
 
 // Config defines the available configuration options
 type Config struct {
-	Port      int    `json:"port"`
-	Interval  int    `json:"interval"`
-	AccessURL string `json:"access_url"`
+	Port      int      `json:"port"`
+	Interval  int      `json:"interval"`
+	AccessURL string   `json:"access_url"`
+	Ignore    []string `json:"ignore"`
 }
 
 // LoadConfig creates a config from a file path

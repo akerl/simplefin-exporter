@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/akerl/simplefin-exporter/config"
@@ -18,6 +19,8 @@ const (
 	accountsEndpoint = "/accounts"
 )
 
+var nonPrintableRegex = regexp.MustCompile(`[[:^print:]]`)
+
 var logger = log.NewLogger("simplefin-exporter.fetcher")
 
 // Fetcher defines the ticker fetching engine
@@ -25,13 +28,17 @@ type Fetcher struct {
 	Interval  int
 	AccessURL string
 	Cache     *server.Cache
+	Ignore    []string
 }
 
 type accounts struct {
 	Errors   []string `json:"errors"`
 	Accounts []struct {
-		ID      string `json:"id"`
+		Org struct {
+			Domain string `json:"domain"`
+		} `json:"org"`
 		Name    string `json:"name"`
+		ID      string `json:"id"`
 		Balance string `json:"balance"`
 	} `json:"accounts"`
 }
@@ -41,6 +48,7 @@ func NewFetcher(conf config.Config, cache *server.Cache) *Fetcher {
 	return &Fetcher{
 		Interval:  conf.Interval,
 		AccessURL: conf.AccessURL,
+		Ignore:    conf.Ignore,
 		Cache:     cache,
 	}
 }
@@ -99,15 +107,28 @@ func (f *Fetcher) fetchAccounts() (metrics.MetricSet, error) {
 		},
 	}
 	for _, item := range a.Accounts {
+		if f.skip(item.ID) {
+			continue
+		}
+		name := nonPrintableRegex.ReplaceAllString(item.Name, "")
 		ms = append(ms, metrics.Metric{
 			Name: "simplefin_balance",
 			Type: "gauge",
 			Tags: map[string]string{
-				"account": item.Name,
-				"id":      item.ID,
+				"account": name,
+				"domain":  item.Org.Domain,
 			},
 			Value: item.Balance,
 		})
 	}
 	return ms, nil
+}
+
+func (f *Fetcher) skip(id string) bool {
+	for _, k := range f.Ignore {
+		if k == id {
+			return true
+		}
+	}
+	return false
 }
