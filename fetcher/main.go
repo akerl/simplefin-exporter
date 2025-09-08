@@ -67,7 +67,7 @@ func (f *Fetcher) Run() {
 func (f *Fetcher) fetchAccounts() (metrics.MetricSet, error) {
 	url := f.AccessURL + accountsEndpoint
 
-	resp, err := http.Get(url, "application/json", nil)
+	resp, err := http.Get(url)
 	if err != nil {
 		return metrics.MetricSet{}, err
 	}
